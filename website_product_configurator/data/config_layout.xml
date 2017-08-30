@@ -128,7 +128,7 @@
                             t-att-data-oe-id="value.id"
                             t-att-class="'hidden' if value.id not in available_val_ids else None"
                             t-att-name="value.id">
-                            <t t-esc="value.name"/>
+                            <t t-esc="(value.name + ' (' + user_id.partner_id.property_product_pricelist.currency_id.symbol + str(value.product_id.sudo().lst_price) + ')' )"/>
                     </option>
                   </t>
                 <t t-if="line.custom">

@@ -478,7 +478,7 @@ class ProductConfigurator(models.TransientModel):
                 on_change="onchange_attribute_value(%s, context)" % field_name,
                 default_focus="1" if attr_line == attr_lines[0] else "0",
                 attrs=str(attrs),
-                context="{'show_attribute': False}",
+                context="{'show_attribute': False,'show_price':True}",
                 options=str({
                     'no_create': True,
                     'no_create_edit': True,

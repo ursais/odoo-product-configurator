@@ -8,4 +8,5 @@ from odoo.exceptions import ValidationError
 class ProductAttributeValue(models.Model):
     _inherit = "product.attribute.value"
 
-    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.user.company_id)
+    company_id = fields.Many2one('res.company', string='Company',
+                                 default=lambda self: self.env.user.company_id)

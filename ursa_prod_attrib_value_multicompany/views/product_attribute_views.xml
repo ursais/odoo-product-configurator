@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="product_attribute_value_view_tree_multicompany" model="ir.ui.view">
-        <field name="name">product.attribute.value.view.tree.multicompany</field>
+    <record id="product_attribute_value_view_tree_multicompany"
+            model="ir.ui.view">
+        <field name="name">product.attribute.value.view.tree.multicompany
+        </field>
         <field name="model">product.attribute.value</field>
-        <field name="inherit_id" ref="product.product_attribute_value_view_tree"/>
+        <field name="inherit_id"
+               ref="product.product_attribute_value_view_tree"/>
         <field name="arch" type="xml">
             <field name="price_extra" position="after">
                 <field name="company_id"/>
             </field>
         </field>
     </record>
-    
+
     <record id="variants_tree_view_multicompany" model="ir.ui.view">
-        <field name="name">product.attribute.value.view.tree.multicompany</field>
+        <field name="name">product.attribute.value.view.tree.multicompany
+        </field>
         <field name="model">product.attribute.value</field>
         <field name="inherit_id" ref="product.variants_tree_view"/>
         <field name="arch" type="xml">
@@ -22,16 +26,19 @@
             </field>
         </field>
     </record>
-    
-    <record id="product_attribute_value_form_view_multicompany" model="ir.ui.view">
-        <field name="name">product.attribute.value.view.form.multicompany</field>
+
+    <record id="product_attribute_value_form_view_multicompany"
+            model="ir.ui.view">
+        <field name="name">product.attribute.value.view.form.multicompany
+        </field>
         <field name="model">product.attribute.value</field>
-        <field name="inherit_id" ref="product_configurator.product_attribute_value_form_view"/>
+        <field name="inherit_id"
+               ref="product_configurator.product_attribute_value_form_view"/>
         <field name="arch" type="xml">
             <field name="product_id" position="after">
                 <field name="company_id"/>
             </field>
         </field>
     </record>
-    
+
 </odoo>

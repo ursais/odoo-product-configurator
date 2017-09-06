@@ -19,6 +19,7 @@ class ProductConfigurator(models.TransientModel):
 
     # Prefix for the dynamicly injected fields
     field_prefix = '__attribute-'
+    field_prefix_qty = '__attribute-qty-'
     custom_field_prefix = '__custom-'
 
     # TODO: Since the configuration process can take a bit of time
@@ -119,7 +120,7 @@ class ProductConfigurator(models.TransientModel):
         :returns vals: Dictionary passed to {'value': vals} by onchange method
         """
         vals = {}
-
+        
         dynamic_fields = {k: v for k, v in dynamic_fields.iteritems() if v}
 
         for k, v in dynamic_fields.iteritems():
@@ -136,11 +137,22 @@ class ProductConfigurator(models.TransientModel):
 
         product_img = self.product_tmpl_id.get_config_image_obj(
             dynamic_fields.values())
+        
+        # Get default qty for attributes if any
+        attribute_lines = self.product_tmpl_id.attribute_line_ids
+        #Check for is_default_qty enable for qty
+        for attr_line in attribute_lines: 
+            if attr_line.value_idss:
+                for value in attr_line.value_idss:
+                    print "valueeeeeeee atribute",value.attrib_value_id
+#                     print "field_name",field_name
+#                     print "value.default_qty, max, enable",value.is_user_qty,value.default_qty,value.maximum_qty
+#                     vals.update(product_img=product_img.image)
 
         vals.update(product_img=product_img.image)
 
         return vals
-
+    
     @api.multi
     def onchange(self, values, field_name, field_onchange):
         """ Override the onchange wrapper to return domains to dynamic
@@ -169,9 +181,12 @@ class ProductConfigurator(models.TransientModel):
             k: v for k, v in values.iteritems() if k.startswith(
                 self.field_prefix)
         }
-
+        
         # Get the unstored values from the client view
         for k, v in dynamic_fields.iteritems():
+            if self.field_prefix_qty in k:
+                print "INSIDE QTYYYYYYYYYYYYYY", k
+                continue
             attr_id = int(k.split(self.field_prefix)[1])
             line_attributes = cfg_step.attribute_line_ids.mapped(
                 'attribute_id')
@@ -196,6 +211,8 @@ class ProductConfigurator(models.TransientModel):
 
         domains = self.get_onchange_domains(values, cfg_val_ids)
         vals = self.get_form_vals(dynamic_fields, domains)
+        print "valsvalsvals",vals
+        print "domains",domains
         return {'value': vals, 'domain': domains}
 
     attribute_line_ids = fields.One2many(
@@ -334,7 +351,16 @@ class ProductConfigurator(models.TransientModel):
                 relation='product.attribute.value',
                 sequence=line.sequence,
             )
-
+            
+            # Add the dynamic field to the resultset using the convention
+            # "__attribute-DBID" to later identify and extract it
+            res[self.field_prefix_qty + str(attribute.id)] = dict(
+                default_attrs,
+                type='integer',
+                string='',
+                sequence=line.sequence,
+                value=1
+            )
         return res
 
     @api.model
@@ -403,6 +429,7 @@ class ProductConfigurator(models.TransientModel):
 
             attribute_id = attr_line.attribute_id.id
             field_name = self.field_prefix + str(attribute_id)
+            field_name_qty = self.field_prefix_qty + str(attribute_id)
             custom_field = self.custom_field_prefix + str(attribute_id)
 
             # Check if the attribute line has been added to the db fields
@@ -484,6 +511,7 @@ class ProductConfigurator(models.TransientModel):
                     'no_open': True
                 })
             )
+            
 
             if attr_line.required and not config_steps:
                 node.attrib['required'] = '1'
@@ -492,6 +520,33 @@ class ProductConfigurator(models.TransientModel):
             if field_type == 'many2many':
                 node.attrib['widget'] = 'many2many_tags'
 
+            # Apply the modifiers (attrs) on the newly inserted field in the
+            # arch and add it to the view
+            orm.setup_modifiers(node)
+            xml_dynamic_form.append(node)
+            
+            #Check for is_default_qty enable for qty
+            if attr_line.value_idss:
+                for value in attr_line.value_idss:
+                    print "valueeeeeeee atribute",value.attrib_value_id
+#                     print "field_name",field_name
+#                     print "value.default_qty, max, enable",value.is_user_qty,value.default_qty,value.maximum_qty
+#                     if value.attrib_value_id and value.attrib_value_id.id ==  
+            # Create the new qty field in the view
+            attrs_qty = attrs.copy()
+            # Get Readonly condition for Qty field
+            attrs_qty['readonly'] = self.get_readonly_scope(attr_line, field_name)
+#             attrs_qty['readonly'] = [(field_name_qty, '=', -1)]
+            print "attrs_qty",attrs_qty
+            node = etree.Element(
+                "field",
+                name=field_name_qty,
+#                 on_change="onchange_attribute_value(%s, context)" % field_name_qty,
+                attrs=str(attrs_qty),
+                string="RemoveMe",
+                context="{'show_price':True}",
+            )
+            node.attrib['class'] = 'oe_inline'
             # Apply the modifiers (attrs) on the newly inserted field in the
             # arch and add it to the view
             orm.setup_modifiers(node)
@@ -559,13 +614,12 @@ class ProductConfigurator(models.TransientModel):
         custom_attr_vals = [
             f for f in fields if f.startswith(self.custom_field_prefix)
         ]
-
         dynamic_fields = attr_vals + custom_attr_vals
         fields = [f for f in fields if f not in dynamic_fields]
-
         custom_ext_id = 'product_configurator.custom_attribute_value'
         custom_val = self.env.ref(custom_ext_id)
         dynamic_vals = {}
+        dynamic_qty_vals = {}
 
         res = super(ProductConfigurator, self).read(fields=fields, load=load)
 
@@ -575,7 +629,8 @@ class ProductConfigurator(models.TransientModel):
         for attr_line in self.product_tmpl_id.attribute_line_ids:
             attr_id = attr_line.attribute_id.id
             field_name = self.field_prefix + str(attr_id)
-
+            field_name_qty = self.field_prefix_qty + str(attr_id)
+            
             if field_name not in dynamic_fields:
                 continue
 
@@ -587,7 +642,7 @@ class ProductConfigurator(models.TransientModel):
 
             if not attr_line.custom and not vals:
                 continue
-
+            
             if attr_line.custom and custom_vals:
                 dynamic_vals.update({
                     field_name: custom_val.id,
@@ -609,8 +664,42 @@ class ProductConfigurator(models.TransientModel):
                 except:
                     continue
             res[0].update(dynamic_vals)
+            if attr_line.user_qty:
+                # Update Attributer Value Qty
+                default_qty = self.get_user_qty(attr_line, field_name, dynamic_vals)
+                dynamic_qty_vals.update({
+                    field_name_qty: default_qty,
+                })
+            else:
+                dynamic_qty_vals.update({
+                    field_name_qty: 1,
+                })
+                
+        if dynamic_qty_vals:
+            res[0].update(dynamic_qty_vals)
         return res
 
+    @api.multi
+    def get_user_qty(self, attr_line, field_name, dynamic_vals):
+        for value in attr_line.value_idss:
+            if value.attrib_value_id.id == dynamic_vals.get(field_name):
+                return value.default_qty
+        return 1
+    
+    @api.multi
+    def get_readonly_scope(self, attr_line, field_name):
+        readonly = []
+        if not attr_line.user_qty:
+            readonly.append((field_name,'not in', [-1]))
+            return readonly
+        else:
+            value_ids = []
+            for value in attr_line.value_idss:
+                if not value.is_user_qty:
+                    value_ids.append(value.attrib_value_id.id)
+            readonly.append((field_name,'in', value_ids))
+            return readonly
+    
     @api.multi
     def write(self, vals):
         """Prevent database storage of dynamic fields and instead write values

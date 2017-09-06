@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="product_template_only_form_view_refactor" model="ir.ui.view">
+    <record id="product_template_only_form_view_multicompany" model="ir.ui.view">
         <field name="name">
-            product.configurator.product.template.form.refactor
+            product.configurator.product.template.form.multicompany
         </field>
         <field name="model">product.template</field>
         <field name="inherit_id"
                ref="product_configurator_refactor.product_template_only_form_view_refactor"/>
         <field name="arch" type="xml">
-            <xpath expr="//page[@name='variants']/form/field[@name='value_idss']/tree/field[@name='is_default']" position="after">
-                <field name="company_id"/>
+            <xpath expr="//field[@name='attribute_line_ids']/form//field[@name='value_idss']/tree/field[@name='is_default']" position="after">
+                <field name="company_id" attrs="{'required': [('is_default','=',True)]}"/>
             </xpath>
         </field>
     </record>

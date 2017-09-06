@@ -5,6 +5,24 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
+class ProductAttributeValue(models.Model):
+    _inherit = "product.attribute.value"
+
+    @api.multi
+    def name_get(self):
+        res = []
+        for value in self:
+            name = value.name
+            if self._context.get('show_price'):
+                # Get Currency symbol
+                currency_id = value.product_id.product_tmpl_id.company_id.\
+                    currency_id
+                name = '%s (%s%s)' % (value.name, currency_id.symbol,
+                                      value.product_id.lst_price)
+            res.append((value.id, name))
+        return res
+
+
 class ProductAttributeLine(models.Model):
     _inherit = 'product.attribute.line'
 
@@ -38,7 +56,7 @@ class ProductAttributeLine(models.Model):
                     "Please select one, first selected option will be valid!"))
         else:
             self.default_val = False
-            
+
     @api.multi
     @api.constrains('value_ids', 'default_val')
     def _check_default_values(self):

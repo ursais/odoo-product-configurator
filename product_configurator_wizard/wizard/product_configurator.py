@@ -161,11 +161,20 @@ class ProductConfigurator(models.TransientModel):
             user_qty = values.get(field_name)
             # Check for max qty
             result = self.is_max_qty_exceeded(product_id, attrib_id, attrib_value_id, user_qty)
-            if result:
-                if result.get('max_qty') < user_qty:
-                    vals.update({field_name: result.get('def_qty')})
-                    warning.update({'title': "Warning", 
-                                    'message': "The Quantity entered is greater than maximum. Please enter quantity lower or equal to %s"%result.get('max_qty')})
+            if result and result.get('max_qty') < user_qty:
+                vals.update({field_name: result.get('def_qty')})
+                warning.update({'title': "Warning", 
+                                'message': "The Quantity entered is greater than maximum. Please enter quantity lower or equal to %s"%result.get('max_qty')})
+
+        if not self.field_prefix_qty in field_name and self.field_prefix in field_name:
+            # onchange attribute value change respective default value
+            attrib_id = int(field_name.split(self.field_prefix)[1])
+            attrib_value_id = values.get(field_name)
+            product_id = values.get('product_tmpl_id')
+            # Check for def qty
+            result = self.get_def_qty_onchange(product_id, attrib_id, attrib_value_id)
+            if result and result.get('def_qty'):
+                vals.update({self.field_prefix + 'qty-'+ str(attrib_id): result.get('def_qty')})
 
         if field_type == list or not field_name.startswith(self.field_prefix):
             res = super(ProductConfigurator, self).onchange(
@@ -674,6 +683,18 @@ class ProductConfigurator(models.TransientModel):
             res[0].update(dynamic_qty_vals)
         return res
     
+    @api.multi
+    def get_def_qty_onchange(self, product_id, attrib_id, attrib_value_id):
+        product = self.env['product.template'].browse([product_id])
+        dict_qty = {}
+        for attrib_line in product.attribute_line_ids:
+            if attrib_line.attribute_id.id == attrib_id:
+                #check for value ids max and default qty
+                for value in attrib_line.value_idss:
+                    if value.attrib_value_id.id == attrib_value_id:
+                        dict_qty.update({'max_qty':value.maximum_qty, 'def_qty':value.default_qty})
+        return dict_qty
+
     @api.multi
     def is_max_qty_exceeded(self, product_id, attrib_id, attrib_value_id, user_qty):
         product = self.env['product.template'].browse([product_id])

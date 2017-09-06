@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="product_attribute_value_line_tree_view_multicompany" model="ir.ui.view">
+    <record id="product_attribute_value_line_tree_view_multicompany"
+            model="ir.ui.view">
         <field name="name">product.attribute.value.line.view.tree.multicompany
         </field>
         <field name="model">product.attribute.value.line</field>
-        <field name="inherit_id" ref="product_configurator_refactor.product_attribute_value_line_tree_view"/>
+        <field name="inherit_id"
+               ref="product_configurator_refactor.product_attribute_value_line_tree_view"/>
         <field name="arch" type="xml">
             <field name="is_default" position="after">
                 <field name="company_id"/>

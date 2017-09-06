@@ -126,6 +126,9 @@ class ProductConfigurator(models.TransientModel):
         for k, v in dynamic_fields.iteritems():
             if not v:
                 continue
+            if self.field_prefix_qty in k:
+                continue
+
             available_val_ids = domains[k][0][2]
             if isinstance(v, list):
                 value_ids = list(set(v[0][2]) & set(available_val_ids))
@@ -138,17 +141,6 @@ class ProductConfigurator(models.TransientModel):
         product_img = self.product_tmpl_id.get_config_image_obj(
             dynamic_fields.values())
         
-        # Get default qty for attributes if any
-        attribute_lines = self.product_tmpl_id.attribute_line_ids
-        #Check for is_default_qty enable for qty
-        for attr_line in attribute_lines: 
-            if attr_line.value_idss:
-                for value in attr_line.value_idss:
-                    print "valueeeeeeee atribute",value.attrib_value_id
-#                     print "field_name",field_name
-#                     print "value.default_qty, max, enable",value.is_user_qty,value.default_qty,value.maximum_qty
-#                     vals.update(product_img=product_img.image)
-
         vals.update(product_img=product_img.image)
 
         return vals
@@ -159,6 +151,21 @@ class ProductConfigurator(models.TransientModel):
         fields as onchange isn't triggered for non-db fields
         """
         field_type = type(field_name)
+        warning = {}
+        vals = {}
+        if self.field_prefix_qty in field_name:
+            # check for max limit
+            attrib_id = int(field_name.split(self.field_prefix_qty)[1])
+            attrib_value_id = values.get(self.field_prefix + str(attrib_id))
+            product_id = values.get('product_tmpl_id')
+            user_qty = values.get(field_name)
+            # Check for max qty
+            result = self.is_max_qty_exceeded(product_id, attrib_id, attrib_value_id, user_qty)
+            if result:
+                if result.get('max_qty') < user_qty:
+                    vals.update({field_name: result.get('def_qty')})
+                    warning.update({'title': "Warning", 
+                                    'message': "The Quantity entered is greater than maximum. Please enter quantity lower or equal to %s"%result.get('max_qty')})
 
         if field_type == list or not field_name.startswith(self.field_prefix):
             res = super(ProductConfigurator, self).onchange(
@@ -185,7 +192,6 @@ class ProductConfigurator(models.TransientModel):
         # Get the unstored values from the client view
         for k, v in dynamic_fields.iteritems():
             if self.field_prefix_qty in k:
-                print "INSIDE QTYYYYYYYYYYYYYY", k
                 continue
             attr_id = int(k.split(self.field_prefix)[1])
             line_attributes = cfg_step.attribute_line_ids.mapped(
@@ -210,10 +216,8 @@ class ProductConfigurator(models.TransientModel):
         cfg_val_ids = cfg_vals.ids + list(view_val_ids)
 
         domains = self.get_onchange_domains(values, cfg_val_ids)
-        vals = self.get_form_vals(dynamic_fields, domains)
-        print "valsvalsvals",vals
-        print "domains",domains
-        return {'value': vals, 'domain': domains}
+        vals.update(self.get_form_vals(dynamic_fields, domains))
+        return {'value': vals, 'domain': domains, 'warning':warning}
 
     attribute_line_ids = fields.One2many(
         comodel_name='product.attribute.line',
@@ -525,25 +529,16 @@ class ProductConfigurator(models.TransientModel):
             orm.setup_modifiers(node)
             xml_dynamic_form.append(node)
             
-            #Check for is_default_qty enable for qty
-            if attr_line.value_idss:
-                for value in attr_line.value_idss:
-                    print "valueeeeeeee atribute",value.attrib_value_id
-#                     print "field_name",field_name
-#                     print "value.default_qty, max, enable",value.is_user_qty,value.default_qty,value.maximum_qty
-#                     if value.attrib_value_id and value.attrib_value_id.id ==  
             # Create the new qty field in the view
             attrs_qty = attrs.copy()
             # Get Readonly condition for Qty field
             attrs_qty['readonly'] = self.get_readonly_scope(attr_line, field_name)
-#             attrs_qty['readonly'] = [(field_name_qty, '=', -1)]
-            print "attrs_qty",attrs_qty
             node = etree.Element(
                 "field",
                 name=field_name_qty,
-#                 on_change="onchange_attribute_value(%s, context)" % field_name_qty,
+                on_change="onchange_attribute_qty_value(%s, %s)" %(field_name_qty, field_name),
                 attrs=str(attrs_qty),
-                string="RemoveMe",
+                string="",
                 context="{'show_price':True}",
             )
             node.attrib['class'] = 'oe_inline'
@@ -678,6 +673,18 @@ class ProductConfigurator(models.TransientModel):
         if dynamic_qty_vals:
             res[0].update(dynamic_qty_vals)
         return res
+    
+    @api.multi
+    def is_max_qty_exceeded(self, product_id, attrib_id, attrib_value_id, user_qty):
+        product = self.env['product.template'].browse([product_id])
+        dict_qty = {}
+        for attrib_line in product.attribute_line_ids:
+            if attrib_line.attribute_id.id == attrib_id:
+                #check for value ids max and default qty
+                for value in attrib_line.value_idss:
+                    if value.attrib_value_id.id == attrib_value_id:
+                        dict_qty.update({'max_qty':value.maximum_qty, 'def_qty':value.default_qty})
+        return dict_qty
 
     @api.multi
     def get_user_qty(self, attr_line, field_name, dynamic_vals):

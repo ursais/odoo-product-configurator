@@ -5,8 +5,8 @@ from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
-class ProductAttributeValue(models.Model):
-    _inherit = "product.attribute.value"
+class ProductAttributeValueLine(models.Model):
+    _inherit = "product.attribute.value.line"
 
     company_id = fields.Many2one('res.company', string='Company',
                                  default=lambda self: self.env.user.company_id)

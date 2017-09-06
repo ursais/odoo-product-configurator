@@ -12,13 +12,15 @@
     "maintainer": "Ursa Information Systems",
     "website": "http://www.ursainfosystems.com",
     "depends": [
-        "product_configurator"
+        "product_configurator",
+        "product_configurator_refactor",
     ],
     "qweb": [
     ],
     "data": [
         "views/product_attribute_views.xml",
         "security/attribute_value_security.xml",
+        "views/product_view.xml",
     ],
     "application": False,
 }

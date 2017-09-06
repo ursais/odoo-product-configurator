@@ -14,6 +14,9 @@
                 <field name="default_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
                 <field name="maximum_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
             </xpath>
+            <xpath expr="//field[@name='attribute_line_ids']/form//field[@name='default_val']" position="after">
+                <field name="user_qty" invisible="1"/>
+            </xpath>
         </field>
     </record>
 

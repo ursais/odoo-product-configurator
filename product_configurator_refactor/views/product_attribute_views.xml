@@ -10,6 +10,7 @@
         <field name="arch" type="xml">
             <field name="value_ids" position="before">
                 <field name="value_idss"/>
+                <field name="default_val_ids" invisible="1"/>
             </field>
         </field>
     </record>

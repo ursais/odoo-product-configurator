@@ -7,9 +7,9 @@ from odoo.exceptions import ValidationError
 
 class ProductAttributeValue(models.Model):
     _inherit = "product.attribute.value"
-    
+
     attribute_line_id = fields.Many2one('product.attribute.line',
-                                    'Product Attribute')
+                                        'Product Attribute')
 
     @api.multi
     def name_get(self):
@@ -20,7 +20,7 @@ class ProductAttributeValue(models.Model):
                 # Get Currency symbol
                 currency_id = value.product_id.product_tmpl_id.company_id.currency_id
                 name = '%s (%s%s)' % (
-                value.name, currency_id.symbol, value.product_id.lst_price)
+                    value.name, currency_id.symbol, value.product_id.lst_price)
             res.append((value.id, name))
         return res
 
@@ -45,13 +45,15 @@ class ProductAttributeLine(models.Model):
                                   string="Default Value")
     default_val_ids = fields.One2many('product.attribute.value',
                                       'attribute_line_id',
-                                  compute='_is_default_value',
-                                  string="Default Value")
+                                      compute='_is_default_value',
+                                      string="Default Value")
 
     def _get_default_value(self):
         for line in self:
-            default_attribute_ids = [value_line.attrib_value_id.id for value_line in
-                         line.value_idss if value_line.company_id == self.env.user.company_id and value_line.is_default]
+            default_attribute_ids = [value_line.attrib_value_id.id for
+                                     value_line in
+                                     line.value_idss if
+                                     value_line.company_id == self.env.user.company_id and value_line.is_default]
             if default_attribute_ids:
                 line.default_val = default_attribute_ids[0]
 
@@ -60,20 +62,25 @@ class ProductAttributeLine(models.Model):
         for line in self:
             default_lines = [default for default in
                              line.value_idss.mapped('is_default') if default]
-    
+
             # Company vise default attribute value
             def_company_attrib_dict = {}
             if default_lines:
                 for value in line.value_idss:
                     if value.is_default:
                         if value.company_id.id not in def_company_attrib_dict:
-                            def_company_attrib_dict.update({value.company_id.id:value.attrib_value_id.id})
+                            def_company_attrib_dict.update({
+                                                               value.company_id.id: value.attrib_value_id.id})
                         else:
-                            raise ValidationError(_("Default Attribute %s is already available for company %s!"%(value.attrib_value_id.name, value.company_id.name)))
+                            raise ValidationError(_(
+                                "Default Attribute %s is already available for company %s!" % (
+                                value.attrib_value_id.name,
+                                value.company_id.name)))
                 # Enter default value company wise to default_value_ids
                 default_list = []
                 for element in def_company_attrib_dict:
-                    default_list.append((4, def_company_attrib_dict.get(element)))
+                    default_list.append(
+                        (4, def_company_attrib_dict.get(element)))
                 line.default_val_ids = default_list
 
     @api.multi

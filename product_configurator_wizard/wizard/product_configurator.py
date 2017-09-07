@@ -173,8 +173,8 @@ class ProductConfigurator(models.TransientModel):
             product_id = values.get('product_tmpl_id')
             # Check for def qty
             result = self.get_def_qty_onchange(product_id, attrib_id, attrib_value_id)
-            if result and result.get('def_qty'):
-                vals.update({self.field_prefix + 'qty-'+ str(attrib_id): result.get('def_qty')})
+            if result:
+                vals.update({self.field_prefix + 'qty-'+ str(attrib_id): result.get('def_qty', 1)})
 
         if field_type == list or not field_name.startswith(self.field_prefix):
             res = super(ProductConfigurator, self).onchange(

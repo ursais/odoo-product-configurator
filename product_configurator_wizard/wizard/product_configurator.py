@@ -21,6 +21,7 @@ class ProductConfigurator(models.TransientModel):
     field_prefix = '__attribute-'
     field_prefix_qty = '__attribute-qty-'
     custom_field_prefix = '__custom-'
+    wizard_values = {}
 
     # TODO: Since the configuration process can take a bit of time
     # depending on complexity and AFK time we must increase the lifespan
@@ -226,6 +227,8 @@ class ProductConfigurator(models.TransientModel):
 
         domains = self.get_onchange_domains(values, cfg_val_ids)
         vals.update(self.get_form_vals(dynamic_fields, domains))
+        # Update wizard values onchange
+        self.wizard_values.update(values)
         return {'value': vals, 'domain': domains, 'warning':warning}
 
     attribute_line_ids = fields.One2many(
@@ -372,7 +375,6 @@ class ProductConfigurator(models.TransientModel):
                 type='integer',
                 string='',
                 sequence=line.sequence,
-                value=1
             )
         return res
 
@@ -672,15 +674,18 @@ class ProductConfigurator(models.TransientModel):
                 # Update Attributer Value Qty
                 default_qty = self.get_user_qty(attr_line, field_name, dynamic_vals)
                 dynamic_qty_vals.update({
-                    field_name_qty: default_qty,
+                    field_name_qty: self.wizard_values.get(field_name_qty ,default_qty),
                 })
             else:
                 dynamic_qty_vals.update({
                     field_name_qty: 1,
                 })
-                
         if dynamic_qty_vals:
             res[0].update(dynamic_qty_vals)
+            # Update wizard values initial on read and avoid to re-assign
+            for dynamic_qty_val in dynamic_qty_vals:
+                if dynamic_qty_val not in self.wizard_values:
+                    self.wizard_values.update({dynamic_qty_val:dynamic_qty_vals.get(dynamic_qty_val)})
         return res
     
     @api.multi
@@ -915,6 +920,23 @@ class ProductConfigurator(models.TransientModel):
     @api.multi
     def action_config_done(self):
         """Parse values and execute final code before closing the wizard"""
+        #Make a list for attribute value id with qty
+        attr_qty_vals = [
+            f for f in self.wizard_values if f.startswith(self.field_prefix_qty)
+        ]
+        attrib_val_qty_dict = {}
+        if attr_qty_vals:
+            for value_id in self.value_ids:
+                for attr_qty in attr_qty_vals:
+                    #Fetch Attribute ID
+                    attrib_id = int(attr_qty.split(self.field_prefix_qty)[1])
+                    #Get Attribute Value for Attribute ID
+                    if self.wizard_values.get(self.field_prefix + str(attrib_id)) == value_id.id:
+                        attrib_val_qty_dict.update({value_id.id: self.wizard_values.get(self.field_prefix_qty + str(attrib_id))})
+        # Replace needed wizard values with unwanted values
+        if attrib_val_qty_dict:
+            self.wizard_values = attrib_val_qty_dict
+
         custom_vals = {
             l.attribute_id.id:
                 l.value or l.attachment_ids for l in self.custom_value_ids
@@ -928,7 +950,7 @@ class ProductConfigurator(models.TransientModel):
         # error legitimately raised in a nested routine
         # is passed through.
         try:
-            variant = self.product_tmpl_id.create_get_variant(
+            variant = self.product_tmpl_id.with_context({'wizard_values':self.wizard_values}).create_get_variant(
                 self.value_ids.ids, custom_vals)
         except ValidationError:
             raise
@@ -949,7 +971,9 @@ class ProductConfigurator(models.TransientModel):
             self.order_line_id.write(line_vals)
         else:
             so.write({'order_line': [(0, 0, line_vals)]})
-
+        
+        # Create Wizard values
+        self.wizard_values = {}
         self.unlink()
         return
 

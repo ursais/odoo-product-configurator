@@ -167,7 +167,7 @@ class ProductConfigurator(models.TransientModel):
 
         dynamic_fields = {
             k: v for k, v in values.iteritems() if k.startswith(
-            self.field_prefix)
+                self.field_prefix)
         }
 
         # Get the unstored values from the client view
@@ -358,7 +358,7 @@ class ProductConfigurator(models.TransientModel):
         fields = self.fields_get()
         dynamic_fields = {
             k: v for k, v in fields.iteritems() if k.startswith(
-            self.field_prefix) or k.startswith(self.custom_field_prefix)
+                self.field_prefix) or k.startswith(self.custom_field_prefix)
         }
 
         res['fields'].update(dynamic_fields)

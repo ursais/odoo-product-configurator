@@ -626,6 +626,13 @@ class ProductConfigurator(models.TransientModel):
         custom_val = self.env.ref(custom_ext_id)
         dynamic_vals = {}
         dynamic_qty_vals = {}
+        
+        # Re-Assign wizard values for new wizard
+        if 'id' not in self.wizard_values:
+            self.wizard_values.update({'id':self.id})
+        else:
+            if self.wizard_values.get('id') != self.id:
+                self.wizard_values = {}
 
         res = super(ProductConfigurator, self).read(fields=fields, load=load)
 
@@ -682,7 +689,6 @@ class ProductConfigurator(models.TransientModel):
                 })
         if dynamic_qty_vals:
             res[0].update(dynamic_qty_vals)
-            # Update wizard values initial on read and avoid to re-assign
             for dynamic_qty_val in dynamic_qty_vals:
                 if dynamic_qty_val not in self.wizard_values:
                     self.wizard_values.update({dynamic_qty_val:dynamic_qty_vals.get(dynamic_qty_val)})

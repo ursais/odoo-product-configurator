@@ -30,6 +30,7 @@ class WebsiteProductConfig(http.Controller):
     attr_field_prefix = 'attribute_'
     qty_attr_field_prefix = 'qty_attribute_'
     custom_attr_field_prefix = 'custom_attribute_'
+    wizard_values = {}
 
 
     def get_pricelist(self):
@@ -153,7 +154,8 @@ class WebsiteProductConfig(http.Controller):
             'is_enable':is_enable,
             'max_qty_value': max_qty_value
         }
-        print "I RETURN",vals
+        # Re-assign it to fresh
+        self.wizard_values = {}
         return vals
 
     # TODO: Use the same variable name all over cfg_val, cfg_step, no mixup
@@ -660,6 +662,15 @@ class WebsiteProductConfig(http.Controller):
         # if category:
         #     category = category_obj.browse(int(category))
             # category = category if category.exists() else False
+        if post:
+            #Make a list for attribute value id with qty into session
+            for qty_attr_field in post:
+                if qty_attr_field.startswith(self.qty_attr_field_prefix):
+                    #Fetch Attribute Value ID
+                    attrib_value_id = int(qty_attr_field.split(self.qty_attr_field_prefix)[1])
+                    key = int(post.get(self.attr_field_prefix+str(attrib_value_id)))
+                    value = int(post.get(qty_attr_field))
+                    self.wizard_values.update({key:value})
 
         cfg_err = None
         fatal_error = None
@@ -738,7 +749,7 @@ class WebsiteProductConfig(http.Controller):
                 cfg_session.custom_value_ids
             }
             product = cfg_session.product_tmpl_id.sudo().create_get_variant(
-                cfg_session.value_ids.ids, custom_vals
+                cfg_session.value_ids.ids, custom_vals, self.wizard_values
             )
             cfg_session.sudo().unlink()
             return self.cart_update(product, post)

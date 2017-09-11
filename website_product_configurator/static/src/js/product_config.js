@@ -8,6 +8,7 @@ odoo.define('website_product_configurator.website_form', function (require) {
 
     var path = window.location.pathname;
     var config_form = $("#product_config_form");
+    var current_cfg_input = false
 
     $('button.cfg_clear').on('click', function(event){
         var path = window.location.pathname;
@@ -60,9 +61,10 @@ odoo.define('website_product_configurator.website_form', function (require) {
     }
 
 
-    function value_onchange(cfg_vals) {
+    function value_onchange(cfg_vals, cfg_input=false) {;
+	    current_cfg_input = cfg_input 
         /* Show/hide available values with the configuration present in frontend passed as cfg_vals */
-        ajax.jsonRpc(path + "/value_onchange", 'call', {'cfg_vals': cfg_vals}).then(
+        ajax.jsonRpc(path + "/value_onchange", 'call', {'cfg_vals': cfg_vals, 'current_value_id': cfg_input.val()}).then(
                 function (res) {
                     if (res) {
                         var select_fields = config_form.find('select.cfg_input');
@@ -83,6 +85,28 @@ odoo.define('website_product_configurator.website_form', function (require) {
                         config_form.find('.cfg_input').each(function(){
                             update_price(res);
                         });
+                        
+                        var qty_input = false;
+                        if (current_cfg_input.attr('type') == 'radio') {
+                        	qty_input = config_form.find('#qty_attribute_' + current_cfg_input.data('oe-id')); 
+                        }else{
+                        	qty_input = config_form.find('#qty_attribute_' + current_cfg_input.data('oe-id'));
+                        }
+                        // Check-Change current changing attribute value
+                        var qty_def_input_value = res['def_qty_attrib_ids'][current_cfg_input.data('oe-id')]
+                        qty_input.val(qty_def_input_value);
+                        
+                        // Set field max qty validation
+                        qty_input.prop('max',res['max_qty_value']);
+
+                    	if(!res['is_enable']){
+                        	// Make Qty Text input as readonly true
+                        	qty_input.prop('readonly',true);
+                        }else{
+                        	// Make Qty Text input as readonly false
+                        	qty_input.prop('readonly',false);
+                        }
+                        
                     }
             });
     };
@@ -98,9 +122,9 @@ odoo.define('website_product_configurator.website_form', function (require) {
         var cfg_vals = config_form.find('.cfg_input, .custom_val').serializeArray();
         var custom_input = config_form.find('#custom_attribute_' + cfg_input.data('oe-id'));
         var value = cfg_input.val();
-
+        
         /* Send all values from the form to backend */
-        value_onchange(cfg_vals);
+        value_onchange(cfg_vals, cfg_input);
 
         if (cfg_input.is(':checked')) {
             if (cfg_input.attr('type') == 'radio') {

@@ -87,13 +87,16 @@ odoo.define('website_product_configurator.website_form', function (require) {
                         });
                         
                         var qty_input = false;
+                        var qty_def_input_value = 1;
                         if (current_cfg_input.attr('type') == 'radio') {
-                        	qty_input = config_form.find('#qty_attribute_' + current_cfg_input.data('oe-id')); 
+                        	var s = (current_cfg_input.attr('name')).split('_');
+                        	qty_input = config_form.find('#qty_' + current_cfg_input.attr('name'));
+                        	qty_def_input_value = res['def_qty_attrib_ids'][s[1]]
                         }else{
                         	qty_input = config_form.find('#qty_attribute_' + current_cfg_input.data('oe-id'));
+                        	qty_def_input_value = res['def_qty_attrib_ids'][current_cfg_input.data('oe-id')]
                         }
-                        // Check-Change current changing attribute value
-                        var qty_def_input_value = res['def_qty_attrib_ids'][current_cfg_input.data('oe-id')]
+                        // Change current changing attribute value
                         qty_input.val(qty_def_input_value);
                         
                         // Set field max qty validation

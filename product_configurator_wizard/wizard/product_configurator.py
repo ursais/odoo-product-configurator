@@ -164,6 +164,7 @@ class ProductConfigurator(models.TransientModel):
             result = self.is_max_qty_exceeded(product_id, attrib_id, attrib_value_id, user_qty)
             if result and result.get('max_qty') < user_qty:
                 vals.update({field_name: result.get('def_qty')})
+                values.update({field_name: result.get('def_qty')})
                 warning.update({'title': "Warning", 
                                 'message': "The Quantity entered is greater than maximum. Please enter quantity lower or equal to %s"%result.get('max_qty')})
 

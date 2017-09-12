@@ -9,12 +9,16 @@
         <field name="inherit_id"
                ref="product_configurator_refactor.product_template_only_form_view_refactor"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='attribute_line_ids']/form//field[@name='value_idss']/tree/field[@name='is_default']" position="before">
+            <xpath expr="//field[@name='attribute_line_ids']/form//field[@name='value_idss']/tree/field[@name='is_default']"
+                   position="before">
                 <field name="is_user_qty"/>
-                <field name="default_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
-                <field name="maximum_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
+                <field name="default_qty"
+                       attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
+                <field name="maximum_qty"
+                       attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
             </xpath>
-            <xpath expr="//field[@name='attribute_line_ids']/form//field[@name='default_val']" position="after">
+            <xpath expr="//field[@name='attribute_line_ids']/form//field[@name='default_val']"
+                   position="after">
                 <field name="user_qty" invisible="1"/>
             </xpath>
         </field>

@@ -5,12 +5,15 @@
     <record id="product_attribute_value_line_form_view" model="ir.ui.view">
         <field name="name">product.attribute.value.line.form</field>
         <field name="model">product.attribute.value.line</field>
-        <field name="inherit_id" ref="product_configurator_refactor.product_attribute_value_line_form_view"/>
+        <field name="inherit_id"
+               ref="product_configurator_refactor.product_attribute_value_line_form_view"/>
         <field name="arch" type="xml">
             <field name="is_default" position="before">
                 <field name="is_user_qty"/>
-                <field name="default_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
-                <field name="maximum_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
+                <field name="default_qty"
+                       attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
+                <field name="maximum_qty"
+                       attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
             </field>
         </field>
     </record>
@@ -18,12 +21,15 @@
     <record id="product_attribute_value_line_tree_view" model="ir.ui.view">
         <field name="name">product.attribute.value.line.tree</field>
         <field name="model">product.attribute.value.line</field>
-        <field name="inherit_id" ref="product_configurator_refactor.product_attribute_value_line_tree_view"/>
+        <field name="inherit_id"
+               ref="product_configurator_refactor.product_attribute_value_line_tree_view"/>
         <field name="arch" type="xml">
             <field name="is_default" position="before">
                 <field name="is_user_qty"/>
-                <field name="default_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
-                <field name="maximum_qty" attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
+                <field name="default_qty"
+                       attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
+                <field name="maximum_qty"
+                       attrs="{'readonly': [('is_user_qty', '=', False)]}"/>
             </field>
         </field>
     </record>

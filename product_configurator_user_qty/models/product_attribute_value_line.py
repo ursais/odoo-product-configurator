@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2012 - TODAY, Ursa Information Systems
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-from odoo import api, fields, models, _
+from odoo import api, fields, models
 
 
 class ProductAttributeValueLine(models.Model):
@@ -10,7 +10,7 @@ class ProductAttributeValueLine(models.Model):
     is_user_qty = fields.Boolean("User Defined Qty")
     default_qty = fields.Integer("Default Quantity")
     maximum_qty = fields.Integer("Maximum Quantity")
-    
+
     @api.onchange('default_qty', 'maximum_qty')
     def onchange_user_qty(self):
         if self.default_qty < 0:

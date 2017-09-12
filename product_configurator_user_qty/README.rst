@@ -2,14 +2,13 @@
 :target: http://www.gnu.org/licenses/agpl-3.0-standalone.html
     :alt: License: AGPL-3
 
-=============================
-Product Configurator User Qty
-=============================
+==========================================
+Product Configurator User-Defined Quantity
+==========================================
 
-This module supports user qty along with product configurator module.
+This module supports user defined quantity along with product configurator module.
 
-When the configurator product is created. 
-The user will create attribute lines with attribute name and value. 
+When the configurator product is created, the user will create attribute lines with attribute name and value.
 For each value, he will be able to:
 
 * Choose if user can enter specific quantity

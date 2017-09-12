@@ -8,8 +8,8 @@ class ProductAttributeValueLine(models.Model):
     _inherit = 'product.attribute.value.line'
 
     is_user_qty = fields.Boolean("User Defined Qty")
-    default_qty = fields.Integer("Default Quantity")
-    maximum_qty = fields.Integer("Maximum Quantity")
+    default_qty = fields.Integer("Default Quantity", default=1)
+    maximum_qty = fields.Integer("Maximum Quantity", default=1)
 
     @api.onchange('default_qty', 'maximum_qty')
     def onchange_user_qty(self):

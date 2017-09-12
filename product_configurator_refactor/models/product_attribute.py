@@ -18,10 +18,10 @@ class ProductAttributeValue(models.Model):
             name = value.name
             if self._context.get('show_price'):
                 # Get Currency symbol
-                currency_id = value.product_id.product_tmpl_id.company_id.\
-                    currency_id
-                name = '%s (%s%s)' % (value.name, currency_id.symbol,
-                                      value.product_id.lst_price)
+                currency_id = value.product_id.product_tmpl_id.company_id.currency_id
+                name = '%s (%s%s)' % (
+                    value.name, currency_id and currency_id.symbol or '$',
+                    value.product_id.lst_price)
             res.append((value.id, name))
         return res
 
@@ -71,12 +71,12 @@ class ProductAttributeLine(models.Model):
                     if value.is_default:
                         if value.company_id.id not in def_company_attrib_dict:
                             def_company_attrib_dict.update({
-                                                               value.company_id.id: value.attrib_value_id.id})
+                                value.company_id.id: value.attrib_value_id.id})
                         else:
                             raise ValidationError(_(
                                 "Default Attribute %s is already available for company %s!" % (
-                                value.attrib_value_id.name,
-                                value.company_id.name)))
+                                    value.attrib_value_id.name,
+                                    value.company_id.name)))
                 # Enter default value company wise to default_value_ids
                 default_list = []
                 for element in def_company_attrib_dict:

@@ -111,11 +111,15 @@
                   method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token"
                        t-att-value="request.csrf_token()"/>
+                <t t-set="qtyLines"
+                   t-value="cfg_vars['qty_attr_lines']"/>
                 <t t-set="lines"
                    t-value="cfg_vars.get('cfg_step_lines') or cfg_vars['attr_lines']"/>
                 <t t-set="cfg_val_ids"
                    t-value="cfg_vars['cfg_session'].value_ids"/>
                 <t t-foreach="lines" t-as="line">
+                    <t t-set="user_qty"
+                       t-value="qtyLines[line.attribute_id.id]['user_qty']"/>
                     <t t-set="custom_value"
                        t-value="cfg_vars['cfg_session'].custom_value_ids.filtered(lambda x, line=line: x.attribute_id == line.attribute_id)"/>
                     <t t-set="parent_val"
@@ -156,6 +160,16 @@
                                     </option>
                                 </t>
                             </select>
+                            <input
+		                        type="text"
+		                        t-att-id="cfg_vars['qty_attr_field_prefix'] + str(line.attribute_id.id)"
+		                        t-att-min="1"
+		                        t-att-max="qtyLines[line.attribute_id.id]['qty_vars'][parent_val.id]['max_value']"
+		                        t-att-name="cfg_vars['qty_attr_field_prefix'] + str(line.attribute_id.id)"
+		                        t-att-value="qtyLines[line.attribute_id.id]['qty_vars'][parent_val.id]['def_value']"
+		                        t-att-readonly="'readonly' if not user_qty else None"
+		                        t-att-class="'control-label col-xs-12 col-md-2 cfg_form_elements cfg_qty_input'"
+		                        />
                         </div>
                         <t t-if="line.custom">
                             <div t-att-class="'col-xs-12 col-md-10 col-md-offset-2 cfg_form_elements cfg_custom mt8' + (' hidden' if not custom_value else '')">
@@ -176,9 +190,15 @@
                   method="post">
                 <input type="hidden" name="csrf_token"
                        t-att-value="request.csrf_token()"/>
+                <t t-set="qtyLines"
+                   t-value="cfg_vars['qty_attr_lines']"/>
                 <t t-set="lines"
                    t-value="cfg_vars.get('cfg_step_lines') or cfg_vars.get('attr_lines')"/>
                 <t t-foreach="lines" t-as="line">
+                    <t t-set="user_qty"
+                       t-value="qtyLines[line.attribute_id.id]['user_qty']"/>
+                    <t t-set="parent_val"
+                       t-value="cfg_vars['cfg_session'].value_ids.filtered(lambda x, line=line: x.attribute_id == line.attribute_id)"/>
                     <div class="form-group">
                         <label style="text-align: left"
                                class="control-label col-xs-12"
@@ -216,6 +236,16 @@
                                 </div>
                             </t>
                         </div>
+                        <input
+                                type="text"
+                                t-att-id="cfg_vars['qty_attr_field_prefix'] + str(line.attribute_id.id)"
+                                t-att-min="1"
+                                t-att-max="qtyLines[line.attribute_id.id]['qty_vars'][parent_val.id]['max_value']"
+                                t-att-name="cfg_vars['qty_attr_field_prefix'] + str(line.attribute_id.id)"
+                                t-att-value="qtyLines[line.attribute_id.id]['qty_vars'][parent_val.id]['def_value']"
+                                t-att-readonly="'readonly' if not user_qty else None"
+                                t-att-class="'col-xs-8 col-md-2 cfg_form_elements cfg_qty_input'"
+                                />
                     </div>
                 </t>
                 <t t-call="website_product_configurator.config_default_footer"/>

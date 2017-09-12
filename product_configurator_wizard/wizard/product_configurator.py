@@ -19,7 +19,9 @@ class ProductConfigurator(models.TransientModel):
 
     # Prefix for the dynamicly injected fields
     field_prefix = '__attribute-'
+    field_prefix_qty = '__attribute-qty-'
     custom_field_prefix = '__custom-'
+    wizard_values = {}
 
     # TODO: Since the configuration process can take a bit of time
     # depending on complexity and AFK time we must increase the lifespan
@@ -125,6 +127,9 @@ class ProductConfigurator(models.TransientModel):
         for k, v in dynamic_fields.iteritems():
             if not v:
                 continue
+            if self.field_prefix_qty in k:
+                continue
+
             available_val_ids = domains[k][0][2]
             if isinstance(v, list):
                 value_ids = list(set(v[0][2]) & set(available_val_ids))
@@ -147,6 +152,37 @@ class ProductConfigurator(models.TransientModel):
         fields as onchange isn't triggered for non-db fields
         """
         field_type = type(field_name)
+        warning = {}
+        vals = {}
+        if self.field_prefix_qty in field_name:
+            # check for max limit
+            attrib_id = int(field_name.split(self.field_prefix_qty)[1])
+            attrib_value_id = values.get(self.field_prefix + str(attrib_id))
+            product_id = values.get('product_tmpl_id')
+            user_qty = values.get(field_name)
+            # Check for max qty
+            result = self.is_max_qty_exceeded(product_id, attrib_id,
+                                              attrib_value_id, user_qty)
+            if result and result.get('max_qty') < user_qty:
+                vals.update({field_name: result.get('def_qty')})
+                values.update({field_name: result.get('def_qty')})
+                warning.update({'title': "Warning",
+                                'message': "The quantity entered is greater"
+                                           " than the maximum. Please enter a"
+                                           " quantity lower or equal to %s"
+                                           % result.get('max_qty')})
+
+        if not self.field_prefix_qty in field_name and self.field_prefix in field_name:
+            # onchange attribute value change respective default value
+            attrib_id = int(field_name.split(self.field_prefix)[1])
+            attrib_value_id = values.get(field_name)
+            product_id = values.get('product_tmpl_id')
+            # Check for def qty
+            result = self.get_def_qty_onchange(product_id, attrib_id,
+                                               attrib_value_id)
+            if result:
+                vals.update({self.field_prefix + 'qty-' + str(
+                    attrib_id): result.get('def_qty', 1)})
 
         if field_type == list or not field_name.startswith(self.field_prefix):
             res = super(ProductConfigurator, self).onchange(
@@ -167,11 +203,13 @@ class ProductConfigurator(models.TransientModel):
 
         dynamic_fields = {
             k: v for k, v in values.iteritems() if k.startswith(
-                self.field_prefix)
+            self.field_prefix)
         }
 
         # Get the unstored values from the client view
         for k, v in dynamic_fields.iteritems():
+            if self.field_prefix_qty in k:
+                continue
             attr_id = int(k.split(self.field_prefix)[1])
             line_attributes = cfg_step.attribute_line_ids.mapped(
                 'attribute_id')
@@ -195,8 +233,10 @@ class ProductConfigurator(models.TransientModel):
         cfg_val_ids = cfg_vals.ids + list(view_val_ids)
 
         domains = self.get_onchange_domains(values, cfg_val_ids)
-        vals = self.get_form_vals(dynamic_fields, domains)
-        return {'value': vals, 'domain': domains}
+        vals.update(self.get_form_vals(dynamic_fields, domains))
+        # Update wizard values onchange
+        self.wizard_values.update(values)
+        return {'value': vals, 'domain': domains, 'warning': warning}
 
     attribute_line_ids = fields.One2many(
         comodel_name='product.attribute.line',
@@ -335,6 +375,14 @@ class ProductConfigurator(models.TransientModel):
                 sequence=line.sequence,
             )
 
+            # Add the dynamic field to the resultset using the convention
+            # "__attribute-DBID" to later identify and extract it
+            res[self.field_prefix_qty + str(attribute.id)] = dict(
+                default_attrs,
+                type='integer',
+                string='',
+                sequence=line.sequence,
+            )
         return res
 
     @api.model
@@ -358,7 +406,7 @@ class ProductConfigurator(models.TransientModel):
         fields = self.fields_get()
         dynamic_fields = {
             k: v for k, v in fields.iteritems() if k.startswith(
-                self.field_prefix) or k.startswith(self.custom_field_prefix)
+            self.field_prefix) or k.startswith(self.custom_field_prefix)
         }
 
         res['fields'].update(dynamic_fields)
@@ -403,6 +451,7 @@ class ProductConfigurator(models.TransientModel):
 
             attribute_id = attr_line.attribute_id.id
             field_name = self.field_prefix + str(attribute_id)
+            field_name_qty = self.field_prefix_qty + str(attribute_id)
             custom_field = self.custom_field_prefix + str(attribute_id)
 
             # Check if the attribute line has been added to the db fields
@@ -497,6 +546,26 @@ class ProductConfigurator(models.TransientModel):
             orm.setup_modifiers(node)
             xml_dynamic_form.append(node)
 
+            # Create the new qty field in the view
+            attrs_qty = attrs.copy()
+            # Get Readonly condition for Qty field
+            attrs_qty['readonly'] = self.get_readonly_scope(attr_line,
+                                                            field_name)
+            node = etree.Element(
+                "field",
+                name=field_name_qty,
+                on_change="onchange_attribute_qty_value(%s, %s)" % (
+                field_name_qty, field_name),
+                attrs=str(attrs_qty),
+                string="",
+                context="{'show_price':True}"
+            )
+            node.attrib['class'] = 'oe_inline'
+            # Apply the modifiers (attrs) on the newly inserted field in the
+            # arch and add it to the view
+            orm.setup_modifiers(node)
+            xml_dynamic_form.append(node)
+
             if attr_line.custom and custom_field in dynamic_fields:
                 widget = ''
                 custom_ext_id = 'product_configurator.custom_attribute_value'
@@ -559,13 +628,19 @@ class ProductConfigurator(models.TransientModel):
         custom_attr_vals = [
             f for f in fields if f.startswith(self.custom_field_prefix)
         ]
-
         dynamic_fields = attr_vals + custom_attr_vals
         fields = [f for f in fields if f not in dynamic_fields]
-
         custom_ext_id = 'product_configurator.custom_attribute_value'
         custom_val = self.env.ref(custom_ext_id)
         dynamic_vals = {}
+        dynamic_qty_vals = {}
+
+        # Re-Assign wizard values for new wizard
+        if 'id' not in self.wizard_values:
+            self.wizard_values.update({'id': self.id})
+        else:
+            if self.wizard_values.get('id') != self.id:
+                self.wizard_values = {}
 
         res = super(ProductConfigurator, self).read(fields=fields, load=load)
 
@@ -575,6 +650,7 @@ class ProductConfigurator(models.TransientModel):
         for attr_line in self.product_tmpl_id.attribute_line_ids:
             attr_id = attr_line.attribute_id.id
             field_name = self.field_prefix + str(attr_id)
+            field_name_qty = self.field_prefix_qty + str(attr_id)
 
             if field_name not in dynamic_fields:
                 continue
@@ -609,7 +685,74 @@ class ProductConfigurator(models.TransientModel):
                 except:
                     continue
             res[0].update(dynamic_vals)
+            if attr_line.user_qty:
+                # Update Attributer Value Qty
+                default_qty = self.get_user_qty(attr_line, field_name,
+                                                dynamic_vals)
+                dynamic_qty_vals.update({
+                    field_name_qty: self.wizard_values.get(field_name_qty,
+                                                           default_qty),
+                })
+            else:
+                dynamic_qty_vals.update({
+                    field_name_qty: 1,
+                })
+        if dynamic_qty_vals:
+            res[0].update(dynamic_qty_vals)
+            for dynamic_qty_val in dynamic_qty_vals:
+                if dynamic_qty_val not in self.wizard_values:
+                    self.wizard_values.update({
+                                                  dynamic_qty_val: dynamic_qty_vals.get(
+                                                      dynamic_qty_val)})
         return res
+
+    @api.multi
+    def get_def_qty_onchange(self, product_id, attrib_id, attrib_value_id):
+        product = self.env['product.template'].browse([product_id])
+        dict_qty = {}
+        for attrib_line in product.attribute_line_ids:
+            if attrib_line.attribute_id.id == attrib_id:
+                # check for value ids max and default qty
+                for value in attrib_line.value_idss:
+                    if value.attrib_value_id.id == attrib_value_id:
+                        dict_qty.update({'max_qty': value.maximum_qty,
+                                         'def_qty': value.default_qty})
+        return dict_qty
+
+    @api.multi
+    def is_max_qty_exceeded(self, product_id, attrib_id, attrib_value_id,
+                            user_qty):
+        product = self.env['product.template'].browse([product_id])
+        dict_qty = {}
+        for attrib_line in product.attribute_line_ids:
+            if attrib_line.attribute_id.id == attrib_id:
+                # check for value ids max and default qty
+                for value in attrib_line.value_idss:
+                    if value.attrib_value_id.id == attrib_value_id:
+                        dict_qty.update({'max_qty': value.maximum_qty,
+                                         'def_qty': value.default_qty})
+        return dict_qty
+
+    @api.multi
+    def get_user_qty(self, attr_line, field_name, dynamic_vals):
+        for value in attr_line.value_idss:
+            if value.attrib_value_id.id == dynamic_vals.get(field_name):
+                return value.default_qty
+        return 1
+
+    @api.multi
+    def get_readonly_scope(self, attr_line, field_name):
+        readonly = []
+        if not attr_line.user_qty:
+            readonly.append((field_name, 'not in', [-1]))
+            return readonly
+        else:
+            value_ids = []
+            for value in attr_line.value_idss:
+                if not value.is_user_qty:
+                    value_ids.append(value.attrib_value_id.id)
+            readonly.append((field_name, 'in', value_ids))
+            return readonly
 
     @api.multi
     def write(self, vals):
@@ -798,6 +941,28 @@ class ProductConfigurator(models.TransientModel):
     @api.multi
     def action_config_done(self):
         """Parse values and execute final code before closing the wizard"""
+        # Make a list for attribute value id with qty
+        attr_qty_vals = [
+            f for f in self.wizard_values if
+            f.startswith(self.field_prefix_qty)
+        ]
+        attrib_val_qty_dict = {}
+        if attr_qty_vals:
+            for value_id in self.value_ids:
+                for attr_qty in attr_qty_vals:
+                    # Fetch Attribute ID
+                    attrib_id = int(attr_qty.split(self.field_prefix_qty)[1])
+                    # Get Attribute Value for Attribute ID
+                    if self.wizard_values.get(self.field_prefix + str(
+                            attrib_id)) == value_id.id:
+                        attrib_val_qty_dict.update({
+                                                       value_id.id: self.wizard_values.get(
+                                                           self.field_prefix_qty + str(
+                                                               attrib_id))})
+        # Replace needed wizard values with unwanted values
+        if attrib_val_qty_dict:
+            self.wizard_values = attrib_val_qty_dict
+
         custom_vals = {
             l.attribute_id.id:
                 l.value or l.attachment_ids for l in self.custom_value_ids
@@ -811,7 +976,8 @@ class ProductConfigurator(models.TransientModel):
         # error legitimately raised in a nested routine
         # is passed through.
         try:
-            variant = self.product_tmpl_id.create_get_variant(
+            variant = self.product_tmpl_id.with_context(
+                {'wizard_values': self.wizard_values}).create_get_variant(
                 self.value_ids.ids, custom_vals)
         except ValidationError:
             raise
@@ -833,6 +999,8 @@ class ProductConfigurator(models.TransientModel):
         else:
             so.write({'order_line': [(0, 0, line_vals)]})
 
+        # Create Wizard values
+        self.wizard_values = {}
         self.unlink()
         return
 

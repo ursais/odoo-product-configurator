@@ -21,14 +21,15 @@ def get_pricelist():
 
 
 class WebsiteProductConfig(http.Controller):
-
     # Frequently used url's in http route
     cfg_tmpl_url = '/configurator/<model("product.template"):product_tmpl>'
     cfg_step_url = (cfg_tmpl_url +
                     '/<model("product.config.step.line"):config_step>')
 
     attr_field_prefix = 'attribute_'
+    qty_attr_field_prefix = 'qty_attribute_'
     custom_attr_field_prefix = 'custom_attribute_'
+    wizard_values = {}
 
     def get_pricelist(self):
         return get_pricelist()
@@ -102,7 +103,8 @@ class WebsiteProductConfig(http.Controller):
         cfg_tmpl_url + '/value_onchange',
         cfg_step_url + '/value_onchange'
     ], type='json', auth='public', website=True)
-    def value_onchange(self, product_tmpl, config_step=None, cfg_vals=None):
+    def value_onchange(self, product_tmpl, config_step=None, cfg_vals=None,
+                       current_value_id=False):
         """ Check attribute domain restrictions on each value change and
             combine the form data sent from the frontend with the stored
             configured in the session
@@ -113,7 +115,6 @@ class WebsiteProductConfig(http.Controller):
 
             :returns: list of available ids for all options in the form
         """
-
         json_config = self.get_json_config(product_tmpl, cfg_vals, config_step)
         cfg_val_ids = product_tmpl.flatten_val_ids(
             json_config['attr_vals'].values())
@@ -126,13 +127,36 @@ class WebsiteProductConfig(http.Controller):
                 lambda x: x not in attr_lines.mapped('value_ids')).ids
 
         attr_vals = attr_lines.mapped('value_ids')
+        # Make current se[lection list for attribute
+        def_qty_attrib_ids = {}
+        is_enable = False
+        max_qty_value = 1
+        for cfg_val in cfg_vals:
+            # Fetch Attribute ID
+            attrib_id = int(cfg_val['name'].split('attribute_')[1])
+            attr_line = attr_lines.filtered(
+                lambda x: x.attribute_id.id == attrib_id)
+            # Get its default and maximum qtys
+            for value_id in attr_line.value_idss:
+                if value_id.attrib_value_id.id == int(cfg_val['value']):
+                    def_qty_attrib_ids.update(
+                        {attrib_id: value_id.default_qty})
+                    if current_value_id and value_id.attrib_value_id.id == int(
+                            current_value_id):
+                        is_enable = value_id.is_user_qty
+                        max_qty_value = value_id.maximum_qty
 
         vals = {
             'value_ids': product_tmpl.values_available(
                 attr_vals.ids, cfg_val_ids),
             'prices': product_tmpl.get_cfg_price(
                 cfg_val_ids, json_config['custom_vals'], formatLang=True),
+            'def_qty_attrib_ids': def_qty_attrib_ids,
+            'is_enable': is_enable,
+            'max_qty_value': max_qty_value
         }
+        # Re-assign it to fresh
+        self.wizard_values = {}
         return vals
 
     # TODO: Use the same variable name all over cfg_val, cfg_step, no mixup
@@ -156,13 +180,27 @@ class WebsiteProductConfig(http.Controller):
 
         cfg_session = self.get_cfg_session(product_tmpl, force_create=True)
 
+        # Construct Attribute ID, Attribute Value, User defined Qtys
+        qty_attr_lines = {}
+        for attr_line in attr_lines:
+            qty_attr_lines.update({attr_line.attribute_id.id: {
+                'user_qty': attr_line.user_qty,
+                'qty_vars': {}}})
+            for value_id in attr_line.value_idss:
+                qty_attr_lines[attr_line.attribute_id.id]['qty_vars'].update({
+                    value_id.attrib_value_id.id: {
+                        'def_value': value_id.default_qty,
+                        'max_value': value_id.maximum_qty, }})
+
         # TODO: Set default view in config parameters
         vals = {
             'attr_lines': attr_lines,
             'cfg_lines': cfg_lines,
+            'qty_attr_lines': qty_attr_lines,
             'view_id': 'website_product_configurator.config_form_select',
             'cfg_session': cfg_session,
             'attr_field_prefix': self.attr_field_prefix,
+            'qty_attr_field_prefix': self.qty_attr_field_prefix,
             'custom_attr_field_prefix': self.custom_attr_field_prefix
         }
 
@@ -183,6 +221,7 @@ class WebsiteProductConfig(http.Controller):
         vals.update({
             'config_steps': config_steps,
             'custom_value': custom_value,
+            'qty_attr_lines': qty_attr_lines,
             'active_step': active_step,
             'view_id': active_step.config_step_id.view_id.xml_id,
             'next_step': adjacent_steps.get('next_step'),
@@ -612,18 +651,31 @@ class WebsiteProductConfig(http.Controller):
     def action_configure(
             self, product_tmpl, config_step=None, category='', **post):
         """ Controller called to parse the form of configurable products"""
+
         # TODO: Use a client-side session for the configuration values with a
         # expiration date set
         def _get_class_dependencies(value, dependencies):
             if value.id in dependencies:
-                return' '.join(str(dep) for dep in dependencies[value.id])
+                return ' '.join(str(dep) for dep in dependencies[value.id])
             return False
 
-        # category_obj = request.env['product.public.category']
+            # category_obj = request.env['product.public.category']
 
-        # if category:
-        #     category = category_obj.browse(int(category))
+            # if category:
+            #     category = category_obj.browse(int(category))
             # category = category if category.exists() else False
+
+        if post:
+            # Make a list for attribute value id with qty into session
+            for qty_attr_field in post:
+                if qty_attr_field.startswith(self.qty_attr_field_prefix):
+                    # Fetch Attribute Value ID
+                    attrib_value_id = int(
+                        qty_attr_field.split(self.qty_attr_field_prefix)[1])
+                    key = int(post.get(
+                        self.attr_field_prefix + str(attrib_value_id)))
+                    value = int(post.get(qty_attr_field))
+                    self.wizard_values.update({key: value})
 
         cfg_err = None
         fatal_error = None
@@ -654,7 +706,7 @@ class WebsiteProductConfig(http.Controller):
                 if cfg_vars['cfg_session'].sudo().action_confirm():
                     return self.product_redirect(cfg_vars['cfg_session'])
                 else:
-                    fatal_error = 'The configurator encountered a problem, '\
+                    fatal_error = 'The configurator encountered a problem, ' \
                                   'please try again later'
 
         redirect = self.config_redirect(
@@ -702,7 +754,7 @@ class WebsiteProductConfig(http.Controller):
                 cfg_session.custom_value_ids
             }
             product = cfg_session.product_tmpl_id.sudo().create_get_variant(
-                cfg_session.value_ids.ids, custom_vals
+                cfg_session.value_ids.ids, custom_vals, self.wizard_values
             )
             cfg_session.sudo().unlink()
             return self.cart_update(product, post)
@@ -754,7 +806,6 @@ class WebsiteProductConfig(http.Controller):
 
 
 class WebsiteSale(main.WebsiteSale):
-
     @http.route()
     def product(self, product, category='', search='', **kwargs):
         """Redirect configurable products from webshop to configurator page

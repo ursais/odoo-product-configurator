@@ -168,7 +168,7 @@
 		                        t-att-name="cfg_vars['qty_attr_field_prefix'] + str(line.attribute_id.id)"
 		                        t-att-value="qtyLines[line.attribute_id.id]['qty_vars'][parent_val.id]['def_value']"
 		                        t-att-readonly="'readonly' if not user_qty else None"
-		                        t-att-class="'col-xs-8 col-md-2 cfg_form_elements cfg_qty_input'"
+		                        t-att-class="'control-label col-xs-12 col-md-2 cfg_form_elements cfg_qty_input'"
 		                        />
                         </div>
                         <t t-if="line.custom">

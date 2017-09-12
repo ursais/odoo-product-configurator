@@ -167,8 +167,10 @@ class ProductConfigurator(models.TransientModel):
                 vals.update({field_name: result.get('def_qty')})
                 values.update({field_name: result.get('def_qty')})
                 warning.update({'title': "Warning",
-                                'message': "The Quantity entered is greater than maximum. Please enter quantity lower or equal to %s" % result.get(
-                                    'max_qty')})
+                                'message': "The quantity entered is greater"
+                                           " than the maximum. Please enter a"
+                                           " quantity lower or equal to %s"
+                                           % result.get('max_qty')})
 
         if not self.field_prefix_qty in field_name and self.field_prefix in field_name:
             # onchange attribute value change respective default value
@@ -556,7 +558,7 @@ class ProductConfigurator(models.TransientModel):
                 field_name_qty, field_name),
                 attrs=str(attrs_qty),
                 string="",
-                context="{'show_price':True}",
+                context="{'show_price':True}"
             )
             node.attrib['class'] = 'oe_inline'
             # Apply the modifiers (attrs) on the newly inserted field in the

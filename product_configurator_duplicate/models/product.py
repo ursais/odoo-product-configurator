@@ -34,7 +34,7 @@ class ProductTemplate(models.Model):
         'product_tmpl_id',
         'Product Attributes',
         copy=True)
-    
+
     @api.multi
     def copy(self, defaults={}):
         for oldTemplate in self:
@@ -47,10 +47,10 @@ class ProductTemplate(models.Model):
                     attrib_id = attrib_line.attribute_id.id
                     # Get original attribute line id for this attribute
                     new_attrib_line_id = newTemplate.attribute_line_ids.filtered(
-                                                lambda x: x.attribute_id.id == attrib_id)
+                        lambda x: x.attribute_id.id == attrib_id)
                     if new_attrib_line_id:
                         new_attribute_line_ids.append(new_attrib_line_id.id)
                 # Set this list of new attribute lines to config step
-                config_step.attribute_line_ids = [(6, 0, new_attribute_line_ids)]
-#             newTemplate.attribute_line_ids
+                config_step.attribute_line_ids = [
+                    (6, 0, new_attribute_line_ids)]
             return newTemplate

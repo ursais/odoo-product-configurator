@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
-from odoo import models, fields, api, _
+# Copyright (C) 2012 - TODAY, Ursa Information Systems
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 
@@ -52,7 +53,9 @@ class ProductAttributeLine(models.Model):
             default_attribute_ids = [value_line.attrib_value_id.id for
                                      value_line in
                                      line.value_idss if
-                                     value_line.company_id == self.env.user.company_id and value_line.is_default]
+                                     value_line.company_id ==
+                                     self.env.user.company_id and
+                                     value_line.is_default]
             if default_attribute_ids:
                 line.default_val = default_attribute_ids[0]
 
@@ -72,7 +75,8 @@ class ProductAttributeLine(models.Model):
                                 value.company_id.id: value.attrib_value_id.id})
                         else:
                             raise ValidationError(_(
-                                "Default Attribute %s is already available for company %s!" % (
+                                "Default Attribute %s is already available for"
+                                " company %s!" % (
                                     value.attrib_value_id.name,
                                     value.company_id.name)))
                 # Enter default value company wise to default_value_ids

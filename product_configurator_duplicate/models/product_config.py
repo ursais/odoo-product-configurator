@@ -204,14 +204,6 @@ class ProductConfigStepLine(models.Model):
         required=True,
         copy=True,
     )
-    attribute_line_ids = fields.Many2many(
-        comodel_name='product.attribute.line',
-        relation='config_step_line_attr_id_rel',
-        column1='cfg_line_id',
-        column2='attr_id',
-        string='Attribute Lines',
-        copy=True,
-    )
     product_tmpl_id = fields.Many2one(
         comodel_name='product.template',
         string='Product Template',

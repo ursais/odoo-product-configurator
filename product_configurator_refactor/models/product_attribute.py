@@ -18,7 +18,7 @@ class ProductAttributeValue(models.Model):
             name = value.name
             if self._context.get('show_price'):
                 # Get Currency symbol
-                currency_id = value.product_id.product_tmpl_id.company_id.currency_id
+                currency_id = self.env.user.company_id.currency_id
                 name = '%s (%s%s)' % (
                     value.name, currency_id and currency_id.symbol or '$',
                     value.product_id.lst_price)

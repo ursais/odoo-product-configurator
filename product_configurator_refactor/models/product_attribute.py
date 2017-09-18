@@ -24,10 +24,16 @@ class ProductAttributeValue(models.Model):
                 if product_currency != company_currency:
                     val = product_currency.compute(value.product_id.lst_price,
                                                    company_currency)
-                name = '%s (%s%s)' % (
-                    value.name,
-                    company_currency and company_currency.symbol or '$',
-                    value.product_id.lst_price)
+                if company_currency.position == 'before':
+                    name = '%s (%s%s)' % (
+                        value.name,
+                        company_currency and company_currency.symbol or '$',
+                        value.product_id.lst_price)
+                elif company_currency.position == 'after':
+                    name = '%s (%s%s)' % (
+                        value.name,
+                        value.product_id.lst_price,
+                        company_currency and company_currency.symbol or '$')
             res.append((value.id, name))
         return res
 

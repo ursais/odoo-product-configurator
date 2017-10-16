@@ -555,7 +555,7 @@ class ProductConfigurator(models.TransientModel):
                 "field",
                 name=field_name_qty,
                 on_change="onchange_attribute_qty_value(%s, %s)" % (
-                field_name_qty, field_name),
+                    field_name_qty, field_name),
                 attrs=str(attrs_qty),
                 string="",
                 context="{'show_price':True}"
@@ -702,8 +702,8 @@ class ProductConfigurator(models.TransientModel):
             for dynamic_qty_val in dynamic_qty_vals:
                 if dynamic_qty_val not in self.wizard_values:
                     self.wizard_values.update({
-                                                  dynamic_qty_val: dynamic_qty_vals.get(
-                                                      dynamic_qty_val)})
+                        dynamic_qty_val: dynamic_qty_vals.get(
+                            dynamic_qty_val)})
         return res
 
     @api.multi
@@ -820,6 +820,13 @@ class ProductConfigurator(models.TransientModel):
                 del vals[custom_field_name]
 
         self.config_session.update_config(attr_val_dict, custom_val_dict)
+        remove_keys = []
+        for k in vals:
+            if self.field_prefix_qty in k:
+                remove_keys.append(k)
+        if remove_keys:
+            for k in remove_keys:
+                vals.pop(k, None)
         res = super(ProductConfigurator, self).write(vals)
         return res
 
@@ -956,9 +963,9 @@ class ProductConfigurator(models.TransientModel):
                     if self.wizard_values.get(self.field_prefix + str(
                             attrib_id)) == value_id.id:
                         attrib_val_qty_dict.update({
-                                                       value_id.id: self.wizard_values.get(
-                                                           self.field_prefix_qty + str(
-                                                               attrib_id))})
+                            value_id.id: self.wizard_values.get(
+                                self.field_prefix_qty + str(
+                                    attrib_id))})
         # Replace needed wizard values with unwanted values
         if attrib_val_qty_dict:
             self.wizard_values = attrib_val_qty_dict

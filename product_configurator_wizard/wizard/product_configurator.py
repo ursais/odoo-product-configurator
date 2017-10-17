@@ -995,7 +995,8 @@ class ProductConfigurator(models.TransientModel):
         # is passed through.
         try:
             variant = self.product_tmpl_id.with_context(
-                {'wizard_values': self.wizard_values,'wizard_id':self.id}).create_get_variant(
+                {'wizard_values': self.wizard_values,
+                 'wizard_id': self.id}).create_get_variant(
                 self.value_ids.ids, custom_vals)
         except ValidationError:
             raise
@@ -1007,7 +1008,8 @@ class ProductConfigurator(models.TransientModel):
 
         so = self.env['sale.order'].browse(self.env.context.get('active_id'))
 
-        line_vals = {'product_id': variant.id, 'config_bom_id':self.config_bom_id and self.config_bom_id.id or False}
+        line_vals = {'product_id': variant.id,
+                     'config_bom_id': self.config_bom_id and self.config_bom_id.id or False}
         line_vals.update(self._extra_line_values(
             self.order_line_id.order_id or so, variant, new=True)
         )

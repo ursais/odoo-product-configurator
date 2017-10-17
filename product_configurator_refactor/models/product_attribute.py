@@ -60,6 +60,7 @@ class ProductAttributeLine(models.Model):
                                       'attribute_line_id',
                                       compute='_is_default_value',
                                       string="Default Value")
+    name = fields.Char("Name")
 
     def _get_default_value(self):
         for line in self:
@@ -97,6 +98,22 @@ class ProductAttributeLine(models.Model):
                 line.default_val_ids = default_list
 
     @api.multi
-    @api.constrains('value_ids', 'default_val')
+    @api.constrains('value_idss')
     def _check_default_values(self):
+        for line in self.filtered(lambda l: l.default_val):
+            attrib_value_ids = [a.attrib_value_id for a in line.value_idss]
+            if line.default_val not in attrib_value_ids:
+                raise ValidationError(
+                    _("Default values for each attribute line must exist in "
+                      "the attribute values (%s: %s)" % (
+                          line.attribute_id.name, line.default_val.name)
+                      )
+                )
+        return True
+
+    @api.constrains('value_idss', 'attribute_id')
+    def _check_valid_attribute(self):
+        if any(line.value_ids > line.attribute_id.value_ids for line in self):
+            raise ValidationError(_(
+                'Error ! You cannot use this attribute with the following value.'))
         return True

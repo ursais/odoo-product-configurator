@@ -31,11 +31,6 @@ class ProductAttributeLine(models.Model):
         help='Allow selection of multiple values for this attribute?'
     )
     sequence = fields.Integer(string='Sequence', default=10, copy=True)
-    default_val = fields.Many2one(
-        comodel_name='product.attribute.value',
-        string='Default Value',
-        copy=True
-    )
     value_idss = fields.One2many('product.attribute.value.line',
                                  'attribute_line_id', 'Values', copy=True)
     default_val = fields.Many2one('product.attribute.value',

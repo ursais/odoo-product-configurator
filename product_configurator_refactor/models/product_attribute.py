@@ -19,11 +19,6 @@ class ProductAttributeValue(models.Model):
             if self._context.get('show_price'):
                 # Get Currency symbol
                 company_currency = self.env.user.company_id.currency_id
-                product_currency = value.product_id.product_tmpl_id.company_id.currency_id
-                val = value.product_id.lst_price
-                if product_currency != company_currency:
-                    val = product_currency.compute(value.product_id.lst_price,
-                                                   company_currency)
                 if company_currency.position == 'before':
                     name = '%s (%s%s)' % (
                         value.name,
@@ -67,7 +62,9 @@ class ProductAttributeLine(models.Model):
             default_attribute_ids = [value_line.attrib_value_id.id for
                                      value_line in
                                      line.value_idss if
-                                     value_line.company_id == self.env.user.company_id and value_line.is_default]
+                                     value_line.company_id ==
+                                     self.env.user.company_id and
+                                     value_line.is_default]
             if default_attribute_ids:
                 line.default_val = default_attribute_ids[0]
 
@@ -87,7 +84,8 @@ class ProductAttributeLine(models.Model):
                                 value.company_id.id: value.attrib_value_id.id})
                         else:
                             raise ValidationError(_(
-                                "Default Attribute %s is already available for company %s!" % (
+                                "Default Attribute %s is already available for"
+                                " company %s!" % (
                                     value.attrib_value_id.name,
                                     value.company_id.name)))
                 # Enter default value company wise to default_value_ids
@@ -115,5 +113,6 @@ class ProductAttributeLine(models.Model):
     def _check_valid_attribute(self):
         if any(line.value_ids > line.attribute_id.value_ids for line in self):
             raise ValidationError(_(
-                'Error ! You cannot use this attribute with the following value.'))
+                'Error! You cannot use this attribute with the following'
+                ' value.'))
         return True

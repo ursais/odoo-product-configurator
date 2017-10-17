@@ -46,8 +46,8 @@ class ProductTemplate(models.Model):
                     # Re-check attribute lines for this step
                     attrib_id = attrib_line.attribute_id.id
                     # Get original attribute line id for this attribute
-                    new_attrib_line_id = newTemplate.attribute_line_ids.filtered(
-                        lambda x: x.attribute_id.id == attrib_id)
+                    new_attrib_line_id = newTemplate.attribute_line_ids.\
+                        filtered(lambda x: x.attribute_id.id == attrib_id)
                     if new_attrib_line_id:
                         new_attribute_line_ids.append(new_attrib_line_id.id)
                 # Set this list of new attribute lines to config step

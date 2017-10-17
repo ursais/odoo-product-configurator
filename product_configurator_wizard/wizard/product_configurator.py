@@ -172,7 +172,8 @@ class ProductConfigurator(models.TransientModel):
                                            " quantity lower or equal to %s"
                                            % result.get('max_qty')})
 
-        if not self.field_prefix_qty in field_name and self.field_prefix in field_name:
+        if not self.field_prefix_qty in field_name and self.field_prefix in\
+                field_name:
             # onchange attribute value change respective default value
             attrib_id = int(field_name.split(self.field_prefix)[1])
             attrib_value_id = values.get(field_name)
@@ -202,8 +203,8 @@ class ProductConfigurator(models.TransientModel):
             cfg_step = self.env['product.config.step.line']
 
         dynamic_fields = {
-            k: v for k, v in values.iteritems() if k.startswith(
-            self.field_prefix)
+            k: v for k, v in values.iteritems() if
+            k.startswith(self.field_prefix)
         }
 
         # Get the unstored values from the client view
@@ -405,8 +406,9 @@ class ProductConfigurator(models.TransientModel):
         # Get updated fields including the dynamic ones
         fields = self.fields_get()
         dynamic_fields = {
-            k: v for k, v in fields.iteritems() if k.startswith(
-            self.field_prefix) or k.startswith(self.custom_field_prefix)
+            k: v for k, v in fields.iteritems() if
+            k.startswith(self.field_prefix) or
+            k.startswith(self.custom_field_prefix)
         }
 
         res['fields'].update(dynamic_fields)

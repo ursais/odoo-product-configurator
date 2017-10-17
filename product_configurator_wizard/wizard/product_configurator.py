@@ -121,7 +121,6 @@ class ProductConfigurator(models.TransientModel):
         :returns vals: Dictionary passed to {'value': vals} by onchange method
         """
         vals = {}
-
         dynamic_fields = {k: v for k, v in dynamic_fields.iteritems() if v}
 
         for k, v in dynamic_fields.iteritems():
@@ -273,6 +272,9 @@ class ProductConfigurator(models.TransientModel):
         comodel_name='sale.order.line',
         readonly=True,
     )
+    config_bom_id = fields.Many2one(
+        comodel_name='mrp.bom',
+        string="Config. BoM")
 
     @api.model
     def fields_get(self, allfields=None, attributes=None):
@@ -736,6 +738,15 @@ class ProductConfigurator(models.TransientModel):
     @api.multi
     def get_user_qty(self, attr_line, field_name, dynamic_vals):
         for value in attr_line.value_idss:
+            if self.env.context.get('active_model') == 'sale.order.line':
+                # Get attribute quantity from bom component lines
+                order_line_id = self.env.context.get('active_id')
+                order_line = self.env['sale.order.line'].browse(order_line_id)
+                # Get for product bom
+                bom_id = order_line.config_bom_id
+                for component in bom_id.bom_line_ids:
+                    if component.product_id.product_tmpl_id == value.attrib_value_id.product_id.product_tmpl_id:
+                        return component.product_qty
             if value.attrib_value_id.id == dynamic_vals.get(field_name):
                 return value.default_qty
         return 1
@@ -984,7 +995,7 @@ class ProductConfigurator(models.TransientModel):
         # is passed through.
         try:
             variant = self.product_tmpl_id.with_context(
-                {'wizard_values': self.wizard_values}).create_get_variant(
+                {'wizard_values': self.wizard_values,'wizard_id':self.id}).create_get_variant(
                 self.value_ids.ids, custom_vals)
         except ValidationError:
             raise
@@ -996,7 +1007,7 @@ class ProductConfigurator(models.TransientModel):
 
         so = self.env['sale.order'].browse(self.env.context.get('active_id'))
 
-        line_vals = {'product_id': variant.id}
+        line_vals = {'product_id': variant.id, 'config_bom_id':self.config_bom_id and self.config_bom_id.id or False}
         line_vals.update(self._extra_line_values(
             self.order_line_id.order_id or so, variant, new=True)
         )
@@ -1005,7 +1016,6 @@ class ProductConfigurator(models.TransientModel):
             self.order_line_id.write(line_vals)
         else:
             so.write({'order_line': [(0, 0, line_vals)]})
-
         # Create Wizard values
         self.wizard_values = {}
         self.unlink()

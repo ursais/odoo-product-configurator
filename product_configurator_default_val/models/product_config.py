@@ -19,6 +19,7 @@ class ProductConfigSession(models.Model):
             value_ids = vals.get('value_ids')
             if value_ids:
                 default_val_ids += value_ids[0][2]
+                default_val_ids = list(set(default_val_ids))
             valid_conf = product_tmpl.validate_configuration(
                 default_val_ids, final=False)
             # TODO: Remove if cond when PR with raise error on github is merged

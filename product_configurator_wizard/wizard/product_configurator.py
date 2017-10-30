@@ -171,7 +171,8 @@ class ProductConfigurator(models.TransientModel):
                                            " quantity lower or equal to %s"
                                            % result.get('max_qty')})
 
-        if not self.field_prefix_qty in field_name and self.field_prefix in field_name:
+        if self.field_prefix_qty not in field_name and self.field_prefix in \
+                field_name:
             # onchange attribute value change respective default value
             attrib_id = int(field_name.split(self.field_prefix)[1])
             attrib_value_id = values.get(field_name)
@@ -201,8 +202,8 @@ class ProductConfigurator(models.TransientModel):
             cfg_step = self.env['product.config.step.line']
 
         dynamic_fields = {
-            k: v for k, v in values.iteritems() if k.startswith(
-            self.field_prefix)
+            k: v for k, v in values.iteritems() if
+            k.startswith(self.field_prefix)
         }
 
         # Get the unstored values from the client view
@@ -406,10 +407,9 @@ class ProductConfigurator(models.TransientModel):
 
         # Get updated fields including the dynamic ones
         fields = self.fields_get()
-        dynamic_fields = {
-            k: v for k, v in fields.iteritems() if k.startswith(
-            self.field_prefix) or k.startswith(self.custom_field_prefix)
-        }
+        dynamic_fields = {k: v for k, v in fields.iteritems()
+                          if k.startswith(self.field_prefix) or
+                          k.startswith(self.custom_field_prefix)}
 
         res['fields'].update(dynamic_fields)
         mod_view = self.add_dynamic_fields(res, dynamic_fields, wiz)
@@ -745,7 +745,8 @@ class ProductConfigurator(models.TransientModel):
                 # Get for product bom
                 bom_id = order_line.config_bom_id
                 for component in bom_id.bom_line_ids:
-                    if component.product_id.product_tmpl_id == value.attrib_value_id.product_id.product_tmpl_id:
+                    if component.product_id.product_tmpl_id ==\
+                            value.attrib_value_id.product_id.product_tmpl_id:
                         return component.product_qty
             if value.attrib_value_id.id == dynamic_vals.get(field_name):
                 return value.default_qty
@@ -1009,7 +1010,8 @@ class ProductConfigurator(models.TransientModel):
         so = self.env['sale.order'].browse(self.env.context.get('active_id'))
 
         line_vals = {'product_id': variant.id,
-                     'config_bom_id': self.config_bom_id and self.config_bom_id.id or False}
+                     'config_bom_id':
+                         self.config_bom_id and self.config_bom_id.id or False}
         line_vals.update(self._extra_line_values(
             self.order_line_id.order_id or so, variant, new=True)
         )

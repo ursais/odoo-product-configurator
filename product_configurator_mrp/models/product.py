@@ -44,8 +44,7 @@ class ProductTemplate(models.Model):
         _logger.info("Variant price %s." % variant.lst_price)
         bom_id = self.env['mrp.bom'].create(values)
         # IF wizard has bom_id then reference it
-        if self._context.has_key('wizard_id') and self._context.get(
-                'wizard_id'):
+        if 'wizard_id' in self._context and self._context.get('wizard_id'):
             wiz = self.env['product.configurator'].browse(
                 self._context.get('wizard_id'))
             wiz.config_bom_id = bom_id.id

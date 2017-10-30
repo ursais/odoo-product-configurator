@@ -15,7 +15,6 @@ class ProductTemplate(models.Model):
         """Add bill of matrials to the configured variant."""
         if custom_values is None:
             custom_values = {}
-
         variant = super(ProductTemplate, self).create_get_variant(
             value_ids, custom_values=custom_values
         )
@@ -23,12 +22,10 @@ class ProductTemplate(models.Model):
         wizard_values = {}
         line_vals = []
         price = 0
-
         if website_values:
             wizard_values = website_values
         else:
             wizard_values = self._context.get('wizard_values', {})
-
         for attribute_value in variant.attribute_value_ids:
             product_qty = wizard_values and int(
                 wizard_values.get(attribute_value.id, 1)) or 1
@@ -45,5 +42,10 @@ class ProductTemplate(models.Model):
         # Set Variant price with new calculated Price and extra price as 0
         variant.list_price = price
         _logger.info("Variant price %s." % variant.lst_price)
-        self.env['mrp.bom'].create(values)
+        bom_id = self.env['mrp.bom'].create(values)
+        # IF wizard has bom_id then reference it
+        if 'wizard_id' in self._context and self._context.get('wizard_id'):
+            wiz = self.env['product.configurator'].browse(
+                self._context.get('wizard_id'))
+            wiz.config_bom_id = bom_id.id
         return variant

@@ -5,4 +5,5 @@
 from . import (
     product_attribute_value_line,
     product_attribute,
+    sale
 )

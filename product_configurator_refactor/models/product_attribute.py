@@ -19,15 +19,21 @@ class ProductAttributeValue(models.Model):
             if self._context.get('show_price'):
                 # Get Currency symbol
                 company_currency = self.env.user.company_id.currency_id
+                product_currency = value.product_id.product_tmpl_id.\
+                    company_id.currency_id
+                val = value.product_id.lst_price
+                if product_currency != company_currency:
+                    val = product_currency.compute(value.product_id.lst_price,
+                                                   company_currency)
                 if company_currency.position == 'before':
                     name = '%s (%s%s)' % (
                         value.name,
                         company_currency and company_currency.symbol or '$',
-                        value.product_id.lst_price)
+                        val)
                 elif company_currency.position == 'after':
                     name = '%s (%s%s)' % (
                         value.name,
-                        value.product_id.lst_price,
+                        val,
                         company_currency and company_currency.symbol or '$')
             res.append((value.id, name))
         return res

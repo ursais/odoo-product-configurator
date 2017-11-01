@@ -2,9 +2,9 @@
 
 from lxml import etree
 
-from odoo.osv import orm
 from odoo import models, fields, api, _
 from odoo.exceptions import Warning, ValidationError
+from odoo.osv import orm
 
 
 class FreeSelection(fields.Selection):
@@ -745,7 +745,7 @@ class ProductConfigurator(models.TransientModel):
                 # Get for product bom
                 bom_id = order_line.config_bom_id
                 for component in bom_id.bom_line_ids:
-                    if component.product_id.product_tmpl_id ==\
+                    if component.product_id.product_tmpl_id == \
                             value.attrib_value_id.product_id.product_tmpl_id:
                         return component.product_qty
             if value.attrib_value_id.id == dynamic_vals.get(field_name):
@@ -877,9 +877,11 @@ class ProductConfigurator(models.TransientModel):
         cfg_step_lines = self.product_tmpl_id.config_step_line_ids
         if not cfg_step_lines:
             if self.value_ids:
-                if self.wizard_values.has_key('default_mode_on') and self.wizard_values.get('default_mode_on'):
+                if self.wizard_values.has_key(
+                        'default_mode_on') and self.wizard_values.get(
+                        'default_mode_on'):
                     self.state = 'configure'
-                    self.wizard_values.update({'default_mode_on':0})
+                    self.wizard_values.update({'default_mode_on': 0})
                     return wizard_action
                 return self.action_config_done()
             else:

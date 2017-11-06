@@ -70,12 +70,47 @@ class ProductConfigurator(models.TransientModel):
         template = self.product_tmpl_id
         self.config_step_ids = template.config_step_line_ids.mapped(
             'config_step_id')
-        if self.value_ids:
-            # TODO: Add confirmation button an delete cfg session
-            raise Warning(
-                _('Changing the product template while having an active '
-                  'configuration will erase reset/clear all values')
-            )
+        self.is_product_change = True
+
+    #         if self.value_ids:
+    #             TODO: Add confirmation button an delete cfg session
+    #             raise Warning(
+    #                 _('Changing the product template while having an active '
+    #                   'configuration will erase reset/clear all values')
+    #             )
+
+    @api.multi
+    def action_change_product(self):
+        """CHANGE WIZARD PRODUCT ONCE PROCEED."""
+
+        self.wizard_values = {}
+        template = self.product_tmpl_id
+
+        # Start a new configuration wizard
+        wizard_obj = self.env['product.configurator'].with_context({
+            'active_model': 'sale.order',
+            'active_id': self._context.get('active_id')
+        })
+
+        wizard = wizard_obj.create(
+            {'product_tmpl_id': self._context.get('product_tmpl_id')})
+        wizard.action_next_step()
+        wizard.is_product_change = False
+
+        wizard_action = {
+            'type': 'ir.actions.act_window',
+            'res_model': 'product.configurator',
+            'name': "Configure Product",
+            'view_mode': 'form',
+            'context': dict(
+                self.env.context,
+                wizard_id=wizard.id,
+            ),
+            'target': 'new',
+            'res_id': wizard.id,
+        }
+
+        return wizard_action
 
     def get_onchange_domains(self, values, cfg_val_ids):
         """Generate domains to be returned by onchange method in order
@@ -276,6 +311,7 @@ class ProductConfigurator(models.TransientModel):
     config_bom_id = fields.Many2one(
         comodel_name='mrp.bom',
         string="Config. BoM")
+    is_product_change = fields.Boolean("Is product changed?")
 
     @api.model
     def fields_get(self, allfields=None, attributes=None):
@@ -877,7 +913,7 @@ class ProductConfigurator(models.TransientModel):
         cfg_step_lines = self.product_tmpl_id.config_step_line_ids
         if not cfg_step_lines:
             if self.value_ids:
-                if 'default_mode_on' in self.wizard_values and\
+                if 'default_mode_on' in self.wizard_values and \
                         self.wizard_values.get('default_mode_on'):
                     self.state = 'configure'
                     self.wizard_values.update({'default_mode_on': 0})
@@ -929,6 +965,7 @@ class ProductConfigurator(models.TransientModel):
         cfg_step_lines = self.product_tmpl_id.config_step_line_ids
 
         if not cfg_step_lines:
+            self.state = 'select'
             return wizard_action
 
         try:
@@ -946,6 +983,7 @@ class ProductConfigurator(models.TransientModel):
         if previous_step:
             self.state = previous_step.id
         else:
+            self.wizard_values.update({'default_mode_on': 0})
             self.state = 'select'
 
         return wizard_action

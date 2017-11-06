@@ -877,9 +877,8 @@ class ProductConfigurator(models.TransientModel):
         cfg_step_lines = self.product_tmpl_id.config_step_line_ids
         if not cfg_step_lines:
             if self.value_ids:
-                if self.wizard_values.has_key(
-                        'default_mode_on') and self.wizard_values.get(
-                        'default_mode_on'):
+                if 'default_mode_on' in self.wizard_values and\
+                        self.wizard_values.get('default_mode_on'):
                     self.state = 'configure'
                     self.wizard_values.update({'default_mode_on': 0})
                     return wizard_action

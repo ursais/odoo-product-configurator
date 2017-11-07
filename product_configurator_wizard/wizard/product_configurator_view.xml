@@ -12,6 +12,7 @@
                 <sheet>
                     <group col="4">
                         <group name='static_form' colspan="3" states='select'>
+                            <field name="is_product_change" invisible="1"/>
                             <field name="product_id" invisible="1"/>
                             <field name="product_tmpl_id"
                                    attrs="{'readonly': [('product_id', '!=', False)]}"
@@ -34,10 +35,17 @@
                 </sheet>
                 <footer>
                     <field name="value_ids" invisible="1"/>
+                    <button type="object" name="action_change_product"
+                            class="oe_highlight"
+                            string="NEXT" special="no_save"
+                            context="{'product_tmpl_id':product_tmpl_id}"
+                            attrs="{'invisible': [('is_product_change', '=', False)]}"/>
+
                     <button type="object" name="action_previous_step"
                             attrs="{'invisible': [('state','=','select')]}"
                             string="Back" special="no_save"/>
                     <button type="object" name="action_next_step"
+                            attrs="{'invisible': [('is_product_change', '=', True)]}"
                             class="oe_highlight" string="Next"/>
                 </footer>
             </form>

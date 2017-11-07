@@ -84,7 +84,6 @@ class ProductConfigurator(models.TransientModel):
         """CHANGE WIZARD PRODUCT ONCE PROCEED."""
 
         self.wizard_values = {}
-        template = self.product_tmpl_id
 
         # Start a new configuration wizard
         wizard_obj = self.env['product.configurator'].with_context({
